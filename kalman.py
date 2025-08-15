@@ -8,41 +8,29 @@ class KalmanFilter:
         # self.P_last = np.diag([0.5, 0.5, np.deg2rad(5.0)])**2
         self.P_last = np.diag([1.0, 1.0, np.deg2rad(10.0)])**2
 
-        # self.Q = np.array([
-        #     [0.1, 0.0, 0.0],  # position drift
-        #     [0.0, 0.1, 0.0],
-        #     [0.0, 0.0, np.deg2rad(1.5)**2]  # orientation drift
-        # ])
-        # self.Q = np.array([
-        #     [0.3, 0.0, 0.0],
-        #     [0.0, 0.3, 0.0],
-        #     [0.0, 0.0, np.deg2rad(3.0)**2]
-        # ])
-
         self.Q = np.array([
             [5.0, 0.0, 0.0],
             [0.0, 5.0, 0.0],
             [0.0, 0.0, np.deg2rad(1.0)**2]
         ])
 
+        # self.R = np.array([
+        #     [25.0, 0.0, 0.0],
+        #     [0.0, 25.0, 0.0],
+        #     [0.0, 0.0, np.deg2rad(6.0)**2]
+        # ])
+
         self.R = np.array([
-            [25.0, 0.0, 0.0],
-            [0.0, 25.0, 0.0],
-            [0.0, 0.0, np.deg2rad(6.0)**2]
+            [9.0, 0.0, 0.0],
+            [0.0, 9.0, 0.0],
+            [0.0, 0.0, np.deg2rad(2.0)**2]
         ])
 
 
 
 
+
         self.H = np.eye(3)
-
-
-        # self.R = np.array([
-        #     [0.01, 0.0, 0.0],        # X noise ~10cm
-        #     [0.0, 0.01, 0.0],        # Y noise
-        #     [0.0, 0.0, np.deg2rad(5.0)**2]  # Orientation ~5 deg
-        # ])
-
 
         self.x_last = 0
         self.y_last = 0
@@ -54,6 +42,7 @@ class KalmanFilter:
         # ODOMETRY PREDICTOIN -- using the Motion Model Taken From: https://www.youtube.com/watch?v=LrsTBWf6Wsc
         
         theta_k = self.theta_last + theta * timestep
+
         x_k = self.x_last + velocity * math.cos(theta_k) * timestep
         y_k = self.y_last + velocity * math.sin(theta_k) * timestep
 
@@ -75,6 +64,7 @@ class KalmanFilter:
         return x_k, y_k, theta_k
 
 
+
     def update(self, x, y, theta):
         x_est = np.array([self.x_last, self.y_last, self.theta_last])
         z_k = np.array([x , y, theta]) # camera measurement
@@ -83,18 +73,9 @@ class KalmanFilter:
         y_k[2] = wrap_angle(y_k[2])
 
 
-        # MINI FILTER
-        threshold = 150
-        if np.any(np.abs(y_k[:2]) > threshold):
-            print("Rejected CAM Reading: ", z_k)
-            # print("Measurement rejected due to large innovation:", y_k)
-            return self.x_last, self.y_last, self.theta_last
-        
-
-
-        print(f"\n[CAM Update] Measurement z_k:    x={z_k[0]:.4f}, y={z_k[1]:.4f}, theta={z_k[2]:.4f}")
-        print(f"[Prediction] x_est:              x={x_est[0]:.4f}, y={x_est[1]:.4f}, theta={x_est[2]:.4f}")
-        print(f"[Residual]   y_k:                dx={y_k[0]:.4f}, dy={y_k[1]:.4f}, dtheta={y_k[2]:.4f}")
+        # print(f"\n[CAM Update] Measurement z_k:    x={z_k[0]:.4f}, y={z_k[1]:.4f}, theta={z_k[2]:.4f}")
+        # print(f"[Prediction] x_est:              x={x_est[0]:.4f}, y={x_est[1]:.4f}, theta={x_est[2]:.4f}")
+        # print(f"[Residual]   y_k:                dx={y_k[0]:.4f}, dy={y_k[1]:.4f}, dtheta={y_k[2]:.4f}")
 
 
         # KALMAN GAIN

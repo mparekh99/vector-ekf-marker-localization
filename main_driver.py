@@ -121,6 +121,7 @@ def main():
                 robot.motors.set_wheel_motors(0, 0)
 
     finally:
+        pose_tracker.save_logs()
         robot.disconnect()
         cv2.destroyAllWindows()
 

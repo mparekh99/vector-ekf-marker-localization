@@ -48,6 +48,9 @@ class MarkerProcessor:
             return None, frame
 
         camera_poses = []
+        frame_height, frame_width = frame.shape[:2]
+        center_x, center_y = frame_width / 2, frame_height / 2
+        max_center_offset_px = 100  # tweak this threshold for "centered" markers
 
         for i, corner in enumerate(corners):
             marker_id = ids[i][0]
@@ -55,11 +58,31 @@ class MarkerProcessor:
                 continue
 
             image_points = corner.reshape((4, 2)).astype(np.float32)
+            marker_center = np.mean(image_points, axis=0)
+            x_img, y_img = marker_center
+
+            if abs(x_img - center_x) > max_center_offset_px or abs(y_img - center_y) > max_center_offset_px:
+                print(f"Skipping marker {marker_id} due to image position: ({x_img:.1f}, {y_img:.1f}) not near center")
+                continue
+
             success, rvec, tvec = cv2.solvePnP(self.obj_points, image_points, self.mtx, self.dist)
             if not success:
                 continue
 
             R_cm, _ = cv2.Rodrigues(rvec)
+
+
+            # CHATGPT Tried to make it so that it would filter out stuff that its not directly facing. But this won't work because if the reading itself is bad saying its directly ahead when it isn't then this filter won't do anything
+            marker_z_cam = R_cm[:, 2]  # Marker Z-axis in camera frame
+            cos_angle = marker_z_cam[2]  # Dot product with camera Z-axis
+            angle_deg = math.degrees(np.arccos(np.clip(cos_angle, -1.0, 1.0)))
+
+
+            # Accept only if viewing angle is close to expected "frontal" angle
+            if 73.0 > angle_deg or angle_deg > 75.0:
+                print(f"Skipping marker {marker_id} due to viewing angle: {angle_deg}°")
+                continue
+
             marker_camera = np.eye(4)
             marker_camera[:3, :3] = R_cm
             marker_camera[:3, 3] = tvec.flatten()
@@ -79,19 +102,15 @@ class MarkerProcessor:
             pos[1] += translation[1]
             vector_pos[:3, 3] = pos
 
+            print(pos)
+            print(marker_id)
+
             camera_poses.append(vector_pos)
 
         if not camera_poses:  # No poses were calculated 
             return None, frame
 
-        avg_translation = np.mean([pose[:3, 3] for pose in camera_poses], axis=0)
-        avg_rotation = np.mean([pose[:3, :3] for pose in camera_poses], axis=0)
-        U, _, VT = np.linalg.svd(avg_rotation)
-        rot_avg = U @ VT
-
-        camera_global_avg = np.eye(4)
-        camera_global_avg[:3, :3] = rot_avg
-        camera_global_avg[:3, 3] = avg_translation
+        camera_global_avg = camera_poses[0] 
 
         return camera_global_avg, frame
     
