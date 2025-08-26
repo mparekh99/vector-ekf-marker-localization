@@ -95,7 +95,7 @@ def setup(robot_serial: str):
 def main():
 
     pose_tracker = PoseTracker()
-    robot, fig, ax = setup("00603f86")
+    robot, fig, ax = setup("006068a2")
 
     try:
         while True:
@@ -121,7 +121,7 @@ def main():
                 robot.motors.set_wheel_motors(0, 0)
 
     finally:
-        pose_tracker.save_logs()
+        # pose_tracker.save_logs()
         robot.disconnect()
         cv2.destroyAllWindows()
 
