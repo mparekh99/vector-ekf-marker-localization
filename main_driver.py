@@ -101,9 +101,9 @@ def main():
         while True:
             frame_pil = robot.camera.latest_image.raw_image
             frame = pose_tracker.update_pose(frame_pil, robot)
-            # plot_scene(ax, pose_tracker)
-            # plt.draw()
-            # plt.pause(0.01)
+            plot_scene(ax, pose_tracker)
+            plt.draw()
+            plt.pause(0.01)
 
             cv2.imshow("Vector Camera View", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):

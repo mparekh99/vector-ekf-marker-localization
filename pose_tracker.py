@@ -44,8 +44,8 @@ class PoseTracker:
 
     def update_pose(self, raw_image, robot):
         frame = self.marker_processor.preprocess_frame(raw_image)
-        # pose, _ = self.marker_processor.process_frame(frame)
-        test = self.marker_processor.process_frame(frame)
+        pose, _ = self.marker_processor.process_frame(frame)
+        # test = self.marker_processor.process_frame(frame)
 
         # current_time = time.time()
         # dt = current_time - self.last_update_time  # in seconds
@@ -61,12 +61,16 @@ class PoseTracker:
         # x_cam, y_cam, theta_cam = None, None, None
         # x, y, theta = None, None, None
 
-        # if pose is not None:
-        #     pos = pose[:3, 3]
-        #     x_cam = pos[0]
-        #     y_cam = pos[1]
-        #     theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
-        #     # print(theta_cam)
+        if pose is not None:
+            pos = pose[:3, 3]
+            x_cam = pos[0]
+            y_cam = pos[1]
+            theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
+
+            self.position[0] = x_cam
+            self.position[1] = y_cam
+            self.heading = theta_cam
+            # print(theta_cam)
 
 
         #     if -200 <= x_cam <= 200 and -200 <= y_cam <= 200:
@@ -78,7 +82,7 @@ class PoseTracker:
         # else:
         #     x, y, theta = x_pred, y_pred, theta_pred
 
-        # UPDATE:
+        # # UPDATE:
         # self.position[0] = x
         # self.position[1] = y
         # self.heading = theta
