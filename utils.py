@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 
 def rotation_matrix_y(angle_degrees):
@@ -28,5 +29,9 @@ def rotation_matrix_x(angle_degrees):
     ])
 
 
-def wrap_angle(angle):
-    return (angle + np.pi) % (2 * np.pi) - np.pi
+def wrap_angle_pi(angle):
+    """
+    Wrap angle to [-π, π)
+    """
+    angle = (angle + math.pi) % (2 * math.pi) - math.pi
+    return angle

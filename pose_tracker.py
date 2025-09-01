@@ -5,7 +5,7 @@ import math
 from marker_processor import MarkerProcessor
 from world import Marker_World
 from kalman import KalmanFilter
-from utils import wrap_angle
+from utils import wrap_angle_pi
 
 
 class PoseTracker:
@@ -21,25 +21,6 @@ class PoseTracker:
         # LOG
         self.logs = []
         self.frame_number = 0
-    # def is_camera_pose_valid(self, cam_x, cam_y, cam_theta, pred_x, pred_y, pred_theta, 
-    #                         pos_thresh_mm=100.0, theta_thresh_deg=30.0):
-    #     dx = cam_x - pred_x
-    #     dy = cam_y - pred_y
-    #     dist_mm = math.sqrt(dx**2 + dy**2)
-
-    #     # print(cam_theta, pred_theta)
-    #     dtheta = wrap_angle(cam_theta - pred_theta)
-    #     dtheta_deg = math.degrees(abs(dtheta))
-
-    #     if dist_mm > pos_thresh_mm:
-    #         print(f"[Reject] Pose too far: Δpos = {dist_mm:.1f} mm")
-    #         return False
-    #     if dtheta_deg > theta_thresh_deg:
-    #         print(f"[Reject] Angle diff too large: Δθ = {dtheta_deg:.1f}°")
-    #         return False
-
-    #     return True
-
 
 
     def update_pose(self, raw_image, robot):
@@ -47,45 +28,34 @@ class PoseTracker:
         pose, _ = self.marker_processor.process_frame(frame)
         # test = self.marker_processor.process_frame(frame)
 
-        # current_time = time.time()
-        # dt = current_time - self.last_update_time  # in seconds
-        # self.last_update_time = current_time
+        current_time = time.time()
+        dt = current_time - self.last_update_time  # in seconds
+        self.last_update_time = current_time
 
-        # v_l = robot.left_wheel_speed_mmps
-        # v_r = robot.right_wheel_speed_mmps
+        v_l = robot.left_wheel_speed_mmps
+        v_r = robot.right_wheel_speed_mmps
 
-        # v = (v_l + v_r) / 2
+        v = (v_l + v_r) / 2
 
-        # x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, robot.gyro.z)
+        x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, robot.gyro.z)
 
-        # x_cam, y_cam, theta_cam = None, None, None
-        # x, y, theta = None, None, None
+        x_cam, y_cam, theta_cam = None, None, None
+        x, y, theta = None, None, None
 
         if pose is not None:
             pos = pose[:3, 3]
             x_cam = pos[0]
             y_cam = pos[1]
             theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
-
-            self.position[0] = x_cam
-            self.position[1] = y_cam
-            self.heading = theta_cam
-            # print(theta_cam)
+            x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam)
+        else:
+            x, y, theta = x_pred, y_pred, theta_pred # UPDATE WITH ODOMOETRY 
 
 
-        #     if -200 <= x_cam <= 200 and -200 <= y_cam <= 200:
-        #         x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam)
-
-        #     else:
-        #         x, y, theta = x_pred, y_pred, theta_pred # UPDATE WITH ODOMOETRY 
-
-        # else:
-        #     x, y, theta = x_pred, y_pred, theta_pred
-
-        # # UPDATE:
-        # self.position[0] = x
-        # self.position[1] = y
-        # self.heading = theta
+        # UPDATE:
+        self.position[0] = x
+        self.position[1] = y
+        self.heading = theta
 
         # self.logs.append({
         #     "timestamp": current_time,

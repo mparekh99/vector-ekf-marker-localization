@@ -46,7 +46,6 @@ class MarkerProcessor:
         self.frame_number += 1
         np_frame = np.array(frame_pil)
         return np_frame
-    
 
     
     def invert_homogeneous(self, T):
@@ -66,6 +65,8 @@ class MarkerProcessor:
         if ids is None:
             return None, frame
         
+        poses = []
+        
         for i, corner in enumerate(corners):
             marker_id = ids[i][0]
 
@@ -75,6 +76,10 @@ class MarkerProcessor:
             image_points = corner.reshape((4, 2)).astype(np.float32)
 
             success, rvec, tvec = cv2.solvePnP(self.obj_points, image_points, self.mtx, self.dist)
+
+            if not success:
+                print(f"Failed to solvePnP for marker ID {marker_id}")
+                continue
 
 
 
@@ -107,13 +112,27 @@ class MarkerProcessor:
             vector_pos[:3, 3] = pos
 
             np.set_printoptions(suppress=True, precision=6)
+            
+            # print(vector_pos[:3,3])
+   
 
-            return  vector_pos, frame
-
+            poses.append(vector_pos)
+     
             # print(vector_pos[:3,3])
 
+        if len(poses) == 0:
+            return None, frame
+         
+        avg_translation = np.mean([pose[:3, 3] for pose in poses], axis=0)
 
-        return 0
+        # Create a final pose using the first marker's rotation and averaged position
+        final_pose = np.eye(4)
+        final_pose[:3, 3] = avg_translation
+        final_pose[:3, :3] = poses[0][:3, :3]  # Use the first marker's rotation
+      
+
+
+        return final_pose, frame
         # return camera_global_avg, frame
 
     def log_rotation_matrix(self, frame_number, R_cm, log_file='rotation_log.csv'):
