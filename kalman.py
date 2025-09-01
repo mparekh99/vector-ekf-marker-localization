@@ -5,26 +5,6 @@ from utils import wrap_angle_pi
 class KalmanFilter:
 
     def __init__(self):
-        # self.P_last = np.diag([0.5, 0.5, np.deg2rad(5.0)])**2
-        # self.P_last = np.diag([1.0, 1.0, np.deg2rad(10.0)])**2
-
-        # self.Q = np.array([
-        #     [5.0, 0.0, 0.0],
-        #     [0.0, 5.0, 0.0],
-        #     [0.0, 0.0, np.deg2rad(1.0)**2]
-        # ])
-
-        # # self.R = np.array([
-        # #     [25.0, 0.0, 0.0],
-        # #     [0.0, 25.0, 0.0],
-        # #     [0.0, 0.0, np.deg2rad(6.0)**2]
-        # # ])
-
-        # self.R = np.array([
-        #     [9.0, 0.0, 0.0],
-        #     [0.0, 9.0, 0.0],
-        #     [0.0, 0.0, np.deg2rad(2.0)**2]
-        # ])
 
         self.P_last = np.diag([2.0, 2.0, np.deg2rad(15.0)])**2  # slightly more uncertainty to allow for corrections
 
@@ -41,10 +21,6 @@ class KalmanFilter:
             [0.0, 10.0, 0.0],
             [0.0, 0.0, np.deg2rad(3.0)**2]  # slightly larger uncertainty on orientation
         ])
-
-
-
-
 
         self.H = np.eye(3)
 
@@ -89,12 +65,6 @@ class KalmanFilter:
 
         y_k[2] = wrap_angle_pi(y_k[2])
 
-
-        # print(f"\n[CAM Update] Measurement z_k:    x={z_k[0]:.4f}, y={z_k[1]:.4f}, theta={z_k[2]:.4f}")
-        # print(f"[Prediction] x_est:              x={x_est[0]:.4f}, y={x_est[1]:.4f}, theta={x_est[2]:.4f}")
-        # print(f"[Residual]   y_k:                dx={y_k[0]:.4f}, dy={y_k[1]:.4f}, dtheta={y_k[2]:.4f}")
-
-
         # KALMAN GAIN
         S = self.H @ self.P_last @ self.H.T + self.R
         K = self.P_last @ self.H.T @ np.linalg.inv(S)
@@ -115,8 +85,5 @@ class KalmanFilter:
         self.x_last = x_updated[0]
         self.y_last = x_updated[1]
         self.theta_last = x_updated[2]
-
-        # print(f"[Updated State] x={self.x_last:.4f}, y={self.y_last:.4f}, theta={self.theta_last:.4f}")
-        # print(f"Updated covariance P_last:\n{self.P_last}")
 
         return self.x_last, self.y_last, self.theta_last
