@@ -10,6 +10,8 @@ from pupil_apriltags import Detector
 
 # Constants
 MARKER_LENGTH = 50 #MM
+FOV_HORIZONTAL = 90
+FOV_VERTICAL = 50
 
 
 
@@ -55,6 +57,31 @@ class MarkerProcessor:
         T_inv[:3, :3] = R_mat.T
         T_inv[:3, 3] = -R_mat.T @ t
         return T_inv
+    
+    def estimate_distance(self, box_height_px, frame):
+        frame_height, frame_width = frame.shape[:2]
+
+        focal_length_px = (frame_height / 2) / math.tan(math.radians(FOV_VERTICAL / 2))
+
+        if box_height_px <= 0:
+            return float('inf')
+
+        distance_mm = (focal_length_px * MARKER_LENGTH) / box_height_px
+        return distance_mm
+
+    # CHATGPTS    
+    def get_marker_size_in_px(self, corners):
+        # corners is a 4x2 array: [top-left, top-right, bottom-right, bottom-left]
+        # Compute width and height in pixels
+        top = np.linalg.norm(corners[0][0] - corners[0][1])
+        bottom = np.linalg.norm(corners[0][2] - corners[0][3])
+        left = np.linalg.norm(corners[0][0] - corners[0][3])
+        right = np.linalg.norm(corners[0][1] - corners[0][2])
+
+        width_px = (top + bottom) / 2.0
+        height_px = (left + right) / 2.0
+
+        return width_px, height_px
 
     def process_frame(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -80,6 +107,11 @@ class MarkerProcessor:
             if not success:
                 print(f"Failed to solvePnP for marker ID {marker_id}")
                 continue
+
+            width_px, height_px = self.get_marker_size_in_px(corner)
+            avg_px_size = (width_px + height_px) / 2
+            distance = self.estimate_distance(avg_px_size, gray)
+            print("DIST", distance - 25.4)
 
 
 
@@ -151,14 +183,14 @@ class MarkerProcessor:
             writer.writerow([frame_number] + R_flat)
     
 
-    def log_quaternion(self, frame_number, quat, log_file='quaternion_log.csv'):
-        # Convert rotation matrix to quaternion
-        # quat = R.from_matrix(R_cm).as_quat()  # [x, y, z, w]
+    # def log_quaternion(self, frame_number, quat, log_file='quaternion_log.csv'):
+    #     # Convert rotation matrix to quaternion
+    #     # quat = R.from_matrix(R_cm).as_quat()  # [x, y, z, w]
 
-        file_exists = os.path.isfile(log_file)
+    #     file_exists = os.path.isfile(log_file)
 
-        with open(log_file, mode='a', newline='') as file:
-            writer = csv.writer(file)
-            if not file_exists:
-                writer.writerow(['frame', 'qx', 'qy', 'qz', 'qw'])  # header
-            writer.writerow([frame_number] + quat.tolist())
+    #     with open(log_file, mode='a', newline='') as file:
+    #         writer = csv.writer(file)
+    #         if not file_exists:
+    #             writer.writerow(['frame', 'qx', 'qy', 'qz', 'qw'])  # header
+    #         writer.writerow([frame_number] + quat.tolist())

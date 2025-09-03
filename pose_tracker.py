@@ -21,13 +21,17 @@ class PoseTracker:
         # LOG
         self.logs = []
         self.frame_number = 0
+        
+        #ODOM Tracking
+        self.odom_x = 0
+        self.odom_y = 0
+        self.odom_theta = math.pi/2
 
 
     def update_pose(self, raw_image, robot):
         frame = self.marker_processor.preprocess_frame(raw_image)
         pose, _ = self.marker_processor.process_frame(frame)
         # test = self.marker_processor.process_frame(frame)
-
         current_time = time.time()
         dt = current_time - self.last_update_time  # in seconds
         self.last_update_time = current_time
@@ -42,10 +46,21 @@ class PoseTracker:
         x_cam, y_cam, theta_cam = None, None, None
         x, y, theta = None, None, None
 
+
+
+        # ODOM
+        theta_k = self.odom_theta + robot.gyro.z * dt
+        # theta_k = wrap_angle_pi(theta_k)
+
+        self.odom_x = self.odom_x + v * math.cos(theta_k) * dt
+        self.odom_y = self.odom_y + v * math.sin(theta_k) * dt
+
         if pose is not None:
             pos = pose[:3, 3]
             x_cam = pos[0]
             y_cam = pos[1]
+            print("CAMERA READ:")
+            print(x_cam, y_cam)
             theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
             x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam)
         else:
@@ -57,18 +72,22 @@ class PoseTracker:
         self.position[1] = y
         self.heading = theta
 
-        # self.logs.append({
-        #     "timestamp": current_time,
-        #     "odom_x": x_pred,
-        #     "odom_y": y_pred,
-        #     "odom_theta": theta_pred,
-        #     "cam_x": x_cam,
-        #     "cam_y": y_cam,
-        #     "cam_theta": theta_cam,
-        #     "ekf_x": x,
-        #     "ekf_y": y,
-        #     "ekf_theta": theta
-        # })
+        # print("KALMAN")
+        # print(x, y)
+
+
+        self.logs.append({
+            "timestamp": current_time,
+            "odom_x": self.odom_x,
+            "odom_y": self.odom_y,
+            "odom_theta": self.odom_theta,
+            "cam_x": x_cam,
+            "cam_y": y_cam,
+            "cam_theta": theta_cam,
+            "ekf_x": x,
+            "ekf_y": y,
+            "ekf_theta": theta
+        })
 
         return frame
 

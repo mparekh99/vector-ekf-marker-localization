@@ -106,8 +106,6 @@ def main():
             plt.pause(0.01)
 
             cv2.imshow("Vector Camera View", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
 
             if control_state["forward"]:
                 robot.motors.set_wheel_motors(100, 100)
@@ -119,6 +117,11 @@ def main():
                 robot.motors.set_wheel_motors(50, -50)
             else:
                 robot.motors.set_wheel_motors(0, 0)
+
+
+    except KeyboardInterrupt:
+        print("[INFO] KeyboardInterrupt detected. Exiting cleanly...")
+
 
     finally:
         # pose_tracker.save_logs()

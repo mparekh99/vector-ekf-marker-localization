@@ -6,21 +6,28 @@ class KalmanFilter:
 
     def __init__(self):
 
-        self.P_last = np.diag([2.0, 2.0, np.deg2rad(15.0)])**2  # slightly more uncertainty to allow for corrections
+        # self.P_last = np.diag([2.0, 2.0, np.deg2rad(15.0)])**2  # slightly more uncertainty to allow for corrections
 
-        # Adjust Q to reflect better trust in odometry (assuming it’s somewhat more reliable)
+        self.P_last = np.diag([
+            1.0,  # 1 mm² variance in X (std dev = 1 mm)
+            1.0,  # 1 mm² in Y
+            np.deg2rad(0.5)**2  # orientation known to within 0.5°
+        ])
+
+
         self.Q = np.array([
-            [2.0, 0.0, 0.0],
-            [0.0, 2.0, 0.0],
-            [0.0, 0.0, np.deg2rad(0.5)**2]  # less process noise on orientation
+            [0.5, 0.0, 0.0],
+            [0.0, 0.5, 0.0],
+            [0.0, 0.0, np.deg2rad(1.5)**2]  # orientation might drift slowly
         ])
 
-        # Adjust R to reflect noisy but trustworthy camera measurements
+
         self.R = np.array([
-            [10.0, 0.0, 0.0],  # slightly larger to reduce the weight of noisy measurements
-            [0.0, 10.0, 0.0],
-            [0.0, 0.0, np.deg2rad(3.0)**2]  # slightly larger uncertainty on orientation
+            [4.0, 0.0, 0.0],  # camera x is a bit noisy (2.0 m std dev)
+            [0.0, 4.0, 0.0],  # same for y
+            [0.0, 0.0, np.deg2rad(0.3)**2]  # camera orientation is highly trusted (~0.3°)
         ])
+
 
         self.H = np.eye(3)
 
