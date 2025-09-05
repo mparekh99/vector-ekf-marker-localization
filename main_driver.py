@@ -50,11 +50,10 @@ def plot_scene(ax, pose_tracker):
 
         marker = pose_tracker.world.marker_transforms[marker_id]
         pos = marker['pos']
-        x = pos[0] * 1000
-        y = pos[1] * 1000
+        x = pos[0]
+        y = pos[1]
         ax.plot(x, y, 'ro')
         ax.text(x + 5, y + 5, f'Marker {marker_id}', color='red', fontsize=8)
-
 
     # Plot the robot's position
     x = pose_tracker.position[0]
@@ -124,7 +123,7 @@ def main():
 
 
     finally:
-        # pose_tracker.save_logs()
+        pose_tracker.save_logs()
         robot.disconnect()
         cv2.destroyAllWindows()
 

@@ -26,43 +26,43 @@ class Marker_World:
 
         return {
             Marker.LEFT.value: {
-                "pos": np.array([-0.2, 0, 0]),
+                "pos": np.array([-200, 0, 0]),
                 "rot": rotation_matrix_z(90) @ rotation_matrix_x(90),
-                "translation": np.array([-186, -30]),
+                "translation": np.array([0, 0]),
             },
             Marker.FRONT.value: {
-                "pos": np.array([0, 0.2, 0]),
+                "pos": np.array([0, 200, 0]),
                 "rot": rotation_matrix_x(90),
-                "translation": np.array([0, 197]),
+                "translation": np.array([0, 0]),
             },
             Marker.FRONT_LEFT.value: {
-                "pos": np.array([-0.2, 0.2, 0]),
-                "rot": rotation_matrix_z(45) @ rotation_matrix_x(90),
-                "translation": np.array([-148, 246])
+                "pos": np.array([-200, 200, 0]),
+                "rot":  rotation_matrix_z(45) @ rotation_matrix_x(90),
+                "translation": np.array([0, 0])
             },
             Marker.FRONT_RIGHT.value: {
-                "pos": np.array([0.2, 0.2, 0]),
+                "pos": np.array([200, 200, 0]),
                 "rot": rotation_matrix_z(-45) @ rotation_matrix_x(90),
-                "translation": np.array([185, 204])
+                "translation": np.array([0, 0])
             },
             Marker.RIGHT.value: {
-                "pos": np.array([0.2, 0, 0]),
+                "pos": np.array([200, 0, 0]),
                 "rot": rotation_matrix_z(-90) @ rotation_matrix_x(90),
-                "translation": np.array([205, 0])
+                "translation": np.array([0, 0])
             },
             Marker.BOTTOM.value: {
-                "pos": np.array([0, -0.2, 0]),
+                "pos": np.array([0, -200, 0]),
                 "rot": rotation_matrix_z(180) @ rotation_matrix_x(90),
-                "translation": np.array([-15, -184])
+                "translation": np.array([9, 9])
             },
             Marker.BOTTOM_LEFT.value: {
-                "pos": np.array([-0.2, -0.2, 0]),
+                "pos": np.array([-200, -200, 0]),
                 "rot": rotation_matrix_z(135) @ rotation_matrix_x(90),
-                "translation": np.array([-230, -178])
+                "translation": np.array([0, 0])
             },
             Marker.BOTTOM_RIGHT.value: {
-                "pos": np.array([0.2, -0.2, 0]),
+                "pos": np.array([200, -200, 0]),
                 "rot": rotation_matrix_z(-135) @ rotation_matrix_x(90),
-                "translation": np.array([230, -166])
+                "translation": np.array([0, 0])
             }
         }
