@@ -30,25 +30,25 @@ class PoseTracker:
 
     def update_pose(self, raw_image, robot):
         frame = self.marker_processor.preprocess_frame(raw_image)
-        pose, _ = self.marker_processor.process_frame(frame)
+        pose, _, dyanmic_R = self.marker_processor.process_frame(frame)
 
-        # current_time = time.time()
-        # dt = current_time - self.last_update_time  # in seconds
-        # self.last_update_time = current_time
+        current_time = time.time()
+        dt = current_time - self.last_update_time  # in seconds
+        self.last_update_time = current_time
 
-        # v_l = robot.left_wheel_speed_mmps
-        # v_r = robot.right_wheel_speed_mmps
+        v_l = robot.left_wheel_speed_mmps
+        v_r = robot.right_wheel_speed_mmps
 
-        # v = (v_l + v_r) / 2
+        v = (v_l + v_r) / 2
 
-        # x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, robot.gyro.z)
+        x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, robot.gyro.z)
 
-        # x_cam, y_cam, theta_cam = None, None, None
-        # x, y, theta = None, None, None
+        x_cam, y_cam, theta_cam = None, None, None
+        x, y, theta = None, None, None
 
 
 
-        # ODOM
+        # # ODOM
         # theta_k = self.odom_theta + robot.gyro.z * dt
         # # theta_k = wrap_angle_pi(theta_k)
 
@@ -62,18 +62,19 @@ class PoseTracker:
             # print("CAMERA READ:")
             # print(x_cam, y_cam)
             theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
-            # x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam)
-            self.position[0] = x_cam
-            self.position[1] = y_cam
-            self.heading = theta_cam
-        # else:
-        #     x, y, theta = x_pred, y_pred, theta_pred # UPDATE WITH ODOMOETRY 
+            x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam, dyanmic_R)
+            # self.position[0] = x_cam
+            # self.position[1] = y_cam
+            # self.heading = theta_cam
+            # print("DYNAMIC R: ", dyanmic_R)
+        else:
+            x, y, theta = x_pred, y_pred, theta_pred # UPDATE WITH ODOMOETRY 
 
 
         # UPDATE:
-        # self.position[0] = x
-        # self.position[1] = y
-        # self.heading = theta
+        self.position[0] = x
+        self.position[1] = y
+        self.heading = theta
 
         # print("KALMAN")
         # print(x, y)

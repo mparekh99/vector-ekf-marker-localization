@@ -22,11 +22,11 @@ class KalmanFilter:
         ])
 
 
-        self.R = np.array([
-            [4.0, 0.0, 0.0],  # camera x is a bit noisy (2.0 m std dev)
-            [0.0, 4.0, 0.0],  # same for y
-            [0.0, 0.0, np.deg2rad(0.3)**2]  # camera orientation is highly trusted (~0.3°)
-        ])
+        # self.R = np.array([
+        #     [4.0, 0.0, 0.0],  # camera x is a bit noisy (2.0 m std dev)
+        #     [0.0, 4.0, 0.0],  # same for y
+        #     [0.0, 0.0, np.deg2rad(0.3)**2]  # camera orientation is highly trusted (~0.3°)
+        # ])
 
 
         self.H = np.eye(3)
@@ -65,7 +65,7 @@ class KalmanFilter:
 
 
 
-    def update(self, x, y, theta):
+    def update(self, x, y, theta, dynamic_R):
         x_est = np.array([self.x_last, self.y_last, self.theta_last])
         z_k = np.array([x , y, theta]) # camera measurement
         y_k = z_k - x_est # difference between measurement and prediction
@@ -73,7 +73,7 @@ class KalmanFilter:
         y_k[2] = wrap_angle_pi(y_k[2])
 
         # KALMAN GAIN
-        S = self.H @ self.P_last @ self.H.T + self.R
+        S = self.H @ self.P_last @ self.H.T + dynamic_R
         K = self.P_last @ self.H.T @ np.linalg.inv(S)
         # print("Kalman Gain K:\n", K)
 
