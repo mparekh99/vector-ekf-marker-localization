@@ -21,32 +21,6 @@ def angle_difference(angle1, angle2):
     diff = (angle1 - angle2 + np.pi) % (2 * np.pi) - np.pi
     return abs(diff)
 
-# CHATGPT
-# def average_poses(poses):
-#     # Average translations
-#     translations = np.array([p[:3, 3] for p in poses])
-#     mean_translation = np.mean(translations, axis=0)
-
-#     # Average rotations using quaternions
-#     rotations = [R.from_matrix(p[:3, :3]) for p in poses]
-#     quats = np.array([r.as_quat() for r in rotations])
-
-#     # Normalize quaternions and flip to the same hemisphere
-#     for i in range(1, len(quats)):
-#         if np.dot(quats[0], quats[i]) < 0:
-#             quats[i] = -quats[i]
-
-#     mean_quat = np.mean(quats, axis=0)
-#     mean_quat /= np.linalg.norm(mean_quat)
-#     mean_rot = R.from_quat(mean_quat).as_matrix()
-
-#     # Compose averaged pose matrix
-#     averaged_pose = np.eye(4)
-#     averaged_pose[:3, :3] = mean_rot
-#     averaged_pose[:3, 3] = mean_translation
-
-#     return averaged_pose
-
 
 def average_poses(poses_with_cov):
     # Separate poses and covariances
@@ -118,9 +92,6 @@ class MarkerProcessor:
             [0.0,   0.0, np.deg2rad(1.0)**2]            # yaw: ~1° std dev
         ])
 
-        
-        
-        
         self.last_pose = None
         self.frame_number = 0
         self.last_frame_number = None
@@ -151,7 +122,7 @@ class MarkerProcessor:
         distance_mm = (focal_length_px * MARKER_LENGTH) / box_height_px
         return distance_mm
 
-    # CHATGPTS    
+    # CHATGPT
     def get_marker_size_in_px(self, corners):
         # corners is a 4x2 array: [top-left, top-right, bottom-right, bottom-left]
         # Compute width and height in pixels
@@ -165,6 +136,7 @@ class MarkerProcessor:
 
         return width_px, height_px
     
+    # CHATGPT
     def reprojection_error(self, rvec, tvec, image_points):
         projected_points, _ = cv2.projectPoints(self.obj_points, rvec, tvec, self.mtx, self.dist)
         projected_points = projected_points.reshape(-1, 2)
@@ -203,7 +175,7 @@ class MarkerProcessor:
                 image_points,
                 self.mtx,
                 self.dist,
-                flags=cv2.SOLVEPNP_IPPE_SQUARE,  #EPnP, etc.
+                flags=cv2.SOLVEPNP_IPPE_SQUARE,
             )
 
 
@@ -250,34 +222,17 @@ class MarkerProcessor:
 
                     is_corner, yaw_diff, distance = self.dynamic_vals(camera_global, corner, frame, marker, marker_id)
 
-                    # Compute dynamic R using current reprojection error
                     dynamic_R = self.compute_dynamic_R(distance, yaw_diff, is_corner, error)
 
-                    # For now, just print or log it to verify
-                    # print(f"Pose from marker {marker_id} has dynamic R:\n{dynamic_R}")
-
-                    # Now continue with your logic
                     if is_perpendicular:
                         head_on_poses.append((camera_global, dynamic_R))  # include R if needed
                     else:
                         angular_poses.append((error, camera_global, dynamic_R))
-                # if is_valid:
-                #     if is_perpendicular:
-                #         head_on_poses.append(camera_global)  # for averaging later
-                #     else:
-                #         angular_poses.append((error, camera_global))
-                # else:
-                #     print("REJECT: ", pos)
-
-
-
-
 
         if len(angular_poses) == 0 and len(head_on_poses) == 0:
             return None, frame, self.R # NO POSE
         
         if len(angular_poses) > 0:
-            # best_pose = min(angular_poses, key=lambda x: x[0])[1]
 
             best_tuple = min(angular_poses, key=lambda x: x[0])
             best_error = best_tuple[0]
@@ -314,18 +269,11 @@ class MarkerProcessor:
         camera_yaw = math.atan2(pose[1, 0], pose[0, 0]) + math.pi /2 
         yaw_diff = angle_difference(camera_yaw, expected_yaw)
 
-
-        # avg = (est_distance + euclidean_dist) / 2
-
-        # if avg > 200: # DON'T USE 
-        #     # 
-
         if yaw_diff < ANGLE_THRESHOLD_RADIANS:
             # Perpendicular 
             return True, True
 
         if abs(est_distance - euclidean_dist) > MAX_DISTANCE_ERROR:
-            # print(f"Rejected: distance mismatch (estimated: {est_distance:.1f} mm, actual: {euclidean_dist:.1f} mm)")
             return False, False
         
 
@@ -354,7 +302,6 @@ class MarkerProcessor:
         width_px, height_px = self.get_marker_size_in_px(corner)
         avg_px_size = (width_px + height_px) / 2
 
-        # Estimated distance (adjusted by offset 25.4 mm, as you do)
         distance = self.estimate_distance(avg_px_size, frame) - 25.4
 
         pos = camera_global[:3, 3]
@@ -362,22 +309,19 @@ class MarkerProcessor:
 
         avg_dist = (distance + euclidean_dist) / 2
 
-        # Camera yaw computed from rotation matrix in camera_global
         camera_yaw = math.atan2(camera_global[1, 0], camera_global[0, 0]) + math.pi / 2
         yaw_diff = angle_difference(camera_yaw, expected_yaw)
 
-        # Define your corner markers here, or use marker_info to tag them
-        corner_marker_ids = [4,3, 6,7]  # example corner marker IDs; adjust as needed
+        corner_marker_ids = [4, 3, 6, 7] 
         is_corner = marker_id in corner_marker_ids
 
         return is_corner, yaw_diff, avg_dist
 
 
+    # CHATGPT
     def compute_dynamic_R(self, distance, yaw_diff, is_corner, reprojection_error):
-        # Base covariance matrix (assumed from your class attribute)
         base_R = self.R.copy()
 
-        # Start with scale 1.0
         scale = 1.0
 
         # Increase scale based on distance (quadratic growth)
@@ -417,19 +361,3 @@ class MarkerProcessor:
             # Flatten 3x3 matrix to 1D list
             R_flat = R_cm.flatten().tolist()
             writer.writerow([frame_number] + R_flat)
-    
-
-    # def log_quaternion(self, frame_number, quat, log_file='quaternion_log.csv'):
-    #     # Convert rotation matrix to quaternion
-    #     # quat = R.from_matrix(R_cm).as_quat()  # [x, y, z, w]
-
-    #     file_exists = os.path.isfile(log_file)
-
-    #     with open(log_file, mode='a', newline='') as file:
-    #         writer = csv.writer(file)
-    #         if not file_exists:
-    #             writer.writerow(['frame', 'qx', 'qy', 'qz', 'qw'])  # header
-    #         writer.writerow([frame_number] + quat.tolist())
-
-
-    

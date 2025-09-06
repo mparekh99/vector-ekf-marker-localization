@@ -48,12 +48,13 @@ class PoseTracker:
 
 
 
-        # # ODOM
-        # theta_k = self.odom_theta + robot.gyro.z * dt
-        # # theta_k = wrap_angle_pi(theta_k)
+        # ODOM
+        theta_k = self.odom_theta + robot.gyro.z * dt
+        # theta_k = wrap_angle_pi(theta_k)
 
-        # self.odom_x = self.odom_x + v * math.cos(theta_k) * dt
-        # self.odom_y = self.odom_y + v * math.sin(theta_k) * dt
+        self.odom_x = self.odom_x + v * math.cos(theta_k) * dt
+        self.odom_y = self.odom_y + v * math.sin(theta_k) * dt
+        self.odom_theta = theta_k
         
         if pose is not None:
             pos = pose[:3, 3]
@@ -63,9 +64,6 @@ class PoseTracker:
             # print(x_cam, y_cam)
             theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
             x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam, dyanmic_R)
-            # self.position[0] = x_cam
-            # self.position[1] = y_cam
-            # self.heading = theta_cam
             # print("DYNAMIC R: ", dyanmic_R)
         else:
             x, y, theta = x_pred, y_pred, theta_pred # UPDATE WITH ODOMOETRY 
@@ -98,18 +96,18 @@ class PoseTracker:
         #         })
 
 
-        # self.logs.append({
-        #     "timestamp": current_time,
-        #     "odom_x": self.odom_x,
-        #     "odom_y": self.odom_y,
-        #     "odom_theta": self.odom_theta,
-        #     "cam_x": x_cam,
-        #     "cam_y": y_cam,
-        #     "cam_theta": theta_cam,
-        #     "ekf_x": x,
-        #     "ekf_y": y,
-        #     "ekf_theta": theta
-        # })
+        self.logs.append({
+            "timestamp": current_time,
+            "odom_x": self.odom_x,
+            "odom_y": self.odom_y,
+            "odom_theta": self.odom_theta,
+            "cam_x": x_cam,
+            "cam_y": y_cam,
+            "cam_theta": theta_cam,
+            "ekf_x": x,
+            "ekf_y": y,
+            "ekf_theta": theta
+        })
 
         return frame
 

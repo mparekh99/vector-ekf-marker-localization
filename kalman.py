@@ -21,14 +21,6 @@ class KalmanFilter:
             [0.0, 0.0, np.deg2rad(1.5)**2]  # orientation might drift slowly
         ])
 
-
-        # self.R = np.array([
-        #     [4.0, 0.0, 0.0],  # camera x is a bit noisy (2.0 m std dev)
-        #     [0.0, 4.0, 0.0],  # same for y
-        #     [0.0, 0.0, np.deg2rad(0.3)**2]  # camera orientation is highly trusted (~0.3°)
-        # ])
-
-
         self.H = np.eye(3)
 
         self.x_last = 0
