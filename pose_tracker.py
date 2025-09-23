@@ -27,10 +27,12 @@ class PoseTracker:
         self.odom_y = 0
         self.odom_theta = math.pi/2
 
+        # self.odom_theta = (3 *math.pi) / 4
+
 
     def update_pose(self, raw_image, robot):
         frame = self.marker_processor.preprocess_frame(raw_image)
-        pose, _, dyanmic_R = self.marker_processor.process_frame(frame)
+        pose, _ = self.marker_processor.process_frame(frame)
 
         current_time = time.time()
         dt = current_time - self.last_update_time  # in seconds
@@ -48,7 +50,7 @@ class PoseTracker:
 
 
 
-        # ODOM
+        # # ODOM
         theta_k = self.odom_theta + robot.gyro.z * dt
         # theta_k = wrap_angle_pi(theta_k)
 
@@ -63,7 +65,14 @@ class PoseTracker:
             # print("CAMERA READ:")
             # print(x_cam, y_cam)
             theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
-            x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam, dyanmic_R)
+
+            # self.position[0] = x_cam
+            # self.position[1] = y_cam
+            # self.heading = theta_cam
+
+        #     print(x_cam, y_cam, dynamic_R)
+
+            x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam)
             # print("DYNAMIC R: ", dyanmic_R)
         else:
             x, y, theta = x_pred, y_pred, theta_pred # UPDATE WITH ODOMOETRY 

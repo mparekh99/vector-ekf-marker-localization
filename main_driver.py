@@ -38,8 +38,8 @@ def teleop_listener():
 # PLOT 
 def plot_scene(ax, pose_tracker):
     ax.clear()
-    ax.set_xlim(-300, 300)
-    ax.set_ylim(-300, 300)
+    ax.set_xlim(-600, 600)
+    ax.set_ylim(-600, 600)
     ax.set_xlabel("X (mm)")
     ax.set_ylabel("Y (mm)")
     ax.set_title("Vector and Marker Positions")
