@@ -8,6 +8,8 @@ from kalman import KalmanFilter
 from utils import wrap_angle_pi
 
 
+WHEEL_BASE = 45 #MM
+
 class PoseTracker:
     def __init__(self):
         self.kalman = KalmanFilter()
@@ -31,8 +33,10 @@ class PoseTracker:
 
 
     def update_pose(self, raw_image, robot):
+        # print("HELLo")
         frame = self.marker_processor.preprocess_frame(raw_image)
-        pose, _ = self.marker_processor.process_frame(frame)
+        pose, _, tag = self.marker_processor.process_frame(frame)
+        # print("EHEEEE")
 
         current_time = time.time()
         dt = current_time - self.last_update_time  # in seconds
@@ -42,8 +46,11 @@ class PoseTracker:
         v_r = robot.right_wheel_speed_mmps
 
         v = (v_l + v_r) / 2
+        angular_velocity = (v_r - v_l) / WHEEL_BASE
 
         x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, robot.gyro.z)
+        # x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, angular_velocity)
+
 
         x_cam, y_cam, theta_cam = None, None, None
         x, y, theta = None, None, None
@@ -64,7 +71,8 @@ class PoseTracker:
             y_cam = pos[1]
             # print("CAMERA READ:")
             # print(x_cam, y_cam)
-            theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
+            # theta_cam = math.atan2(pose[1, 0], pose[0, 0]) + math.pi / 2
+            theta_cam = wrap_angle_pi(math.atan2(-pose[0, 0], pose[1, 0]) + math.pi)
 
             # self.position[0] = x_cam
             # self.position[1] = y_cam
@@ -72,7 +80,9 @@ class PoseTracker:
 
         #     print(x_cam, y_cam, dynamic_R)
 
+            # x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam, angular_velocity)
             x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam)
+            # print("CRASH??")
             # print("DYNAMIC R: ", dyanmic_R)
         else:
             x, y, theta = x_pred, y_pred, theta_pred # UPDATE WITH ODOMOETRY 
@@ -107,6 +117,9 @@ class PoseTracker:
 
         self.logs.append({
             "timestamp": current_time,
+            "pred_x": x_pred,
+            "pred_y": y_pred,
+            "pred_theta": theta_pred,
             "odom_x": self.odom_x,
             "odom_y": self.odom_y,
             "odom_theta": self.odom_theta,
@@ -115,7 +128,8 @@ class PoseTracker:
             "cam_theta": theta_cam,
             "ekf_x": x,
             "ekf_y": y,
-            "ekf_theta": theta
+            "ekf_theta": theta,
+            "observed_tag": tag, 
         })
 
         return frame
@@ -130,3 +144,86 @@ class PoseTracker:
             writer.writeheader()
             writer.writerows(self.logs)
         print(f"Logs saved to {filename}")
+
+
+#### TO SHOW HOW WELL THE POSES I GET ARE
+
+
+
+    # def update_pose(self, raw_image, robot):
+    #     frame = self.marker_processor.preprocess_frame(raw_image)
+    #     pose, _, tag = self.marker_processor.process_frame(frame)
+
+    #     # current_time = time.time()
+    #     # dt = current_time - self.last_update_time  # in seconds
+    #     # self.last_update_time = current_time
+
+    #     # v_l = robot.left_wheel_speed_mmps
+    #     # v_r = robot.right_wheel_speed_mmps
+
+    #     # v = (v_l + v_r) / 2
+    #     # angular_velocity = (v_r - v_l) / WHEEL_BASE
+
+    #     # # x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, robot.gyro.z)
+    #     # x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, angular_velocity)
+
+
+    #     # x_cam, y_cam, theta_cam = None, None, None
+    #     # x, y, theta = None, None, None
+
+
+
+    #     # # # ODOM
+    #     # theta_k = self.odom_theta + robot.gyro.z * dt
+    #     # # theta_k = wrap_angle_pi(theta_k)
+
+    #     # self.odom_x = self.odom_x + v * math.cos(theta_k) * dt
+    #     # self.odom_y = self.odom_y + v * math.sin(theta_k) * dt
+    #     # self.odom_theta = theta_k
+        
+    #     if pose is not None:
+    #         pos = pose[:3, 3]
+    #         x_cam = pos[0]
+    #         y_cam = pos[1]
+    #         # print("CAMERA READ:")
+    #         # print(x_cam, y_cam)
+    #         theta_cam = wrap_angle_pi(math.atan2(-pose[0, 0], pose[1, 0]) + math.pi)
+
+
+
+
+    #         self.position[0] = x_cam
+    #         self.position[1] = y_cam
+    #         self.heading = theta_cam
+
+    #     #     print(x_cam, y_cam, dynamic_R)
+
+    #     #     # x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam, angular_velocity)
+    #     #     x, y, theta = self.kalman.update(x_cam, y_cam, theta_cam)
+    #     #     # print("DYNAMIC R: ", dyanmic_R)
+    #     # else:
+    #     #     x, y, theta = x_pred, y_pred, theta_pred # UPDATE WITH ODOMOETRY 
+
+
+    #     # UPDATE:
+    #     # self.position[0] = x
+    #     # self.position[1] = y
+    #     # self.heading = theta
+
+
+
+    #     # self.logs.append({
+    #     #     "timestamp": current_time,
+    #     #     "odom_x": self.odom_x,
+    #     #     "odom_y": self.odom_y,
+    #     #     "odom_theta": self.odom_theta,
+    #     #     "cam_x": x_cam,
+    #     #     "cam_y": y_cam,
+    #     #     "cam_theta": theta_cam,
+    #     #     "ekf_x": x,
+    #     #     "ekf_y": y,
+    #     #     "ekf_theta": theta,
+    #     #     "observed_tag": tag, 
+    #     # })
+
+    #     return frame

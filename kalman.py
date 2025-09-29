@@ -15,14 +15,14 @@ class KalmanFilter:
         ])
 
 
-        self.R = np.diag([
-            5.0,               # position X noise (mm^2)
-            5.0,               # position Y noise
-            np.deg2rad(5.0)**2  # orientation noise increased to ~5 degrees
-        ])
+        # self.R = np.diag([
+        #     5.0,               # position X noise (mm^2)
+        #     5.0,               # position Y noise
+        #     np.deg2rad(5.0)**2  # orientation noise increased to ~5 degrees
+        # ])
 
         self.Q = np.diag([
-            0.5, 0.5, np.deg2rad(2.0)**2  # slightly more process noise on orientation
+            0.5, 0.5, np.deg2rad(5.0)**2  # slightly more process noise on orientation
         ])
 
         self.H = np.eye(3)
@@ -62,6 +62,9 @@ class KalmanFilter:
 
 
     def update(self, x, y, theta):
+        
+        R = np.diag([5.0, 5.0, np.deg2rad(5.0)**2])
+
         x_est = np.array([self.x_last, self.y_last, self.theta_last])
         z_k = np.array([x , y, theta]) # camera measurement
         y_k = z_k - x_est # difference between measurement and prediction
@@ -69,7 +72,7 @@ class KalmanFilter:
         y_k[2] = wrap_angle_pi(y_k[2])
 
         # KALMAN GAIN
-        S = self.H @ self.P_last @ self.H.T + self.R
+        S = self.H @ self.P_last @ self.H.T + R
         K = self.P_last @ self.H.T @ np.linalg.inv(S)
         # print("Kalman Gain K:\n", K)
 
@@ -88,5 +91,7 @@ class KalmanFilter:
         self.x_last = x_updated[0]
         self.y_last = x_updated[1]
         self.theta_last = x_updated[2]
+        self.theta_last = wrap_angle_pi(x_updated[2])
+
 
         return self.x_last, self.y_last, self.theta_last

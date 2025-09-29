@@ -100,6 +100,7 @@ class MarkerProcessor:
 
         pose = None
         poses = []
+        pose_distance_list = []
 
 
         for tag in tags:
@@ -133,23 +134,30 @@ class MarkerProcessor:
 
             camera_global[:3, 3] = pos
 
-            
-            np.set_printoptions(suppress=True, precision=6)
-
-            pose = camera_global
-
-
-            # ADJUST WIEGHT TO R 
-            distance_to_tag = np.linalg.norm(pos - fixed_pos)  # Euclidian dist between marker and current pose reading
+            # Compute Euclidean distance between current pose position and fixed marker position
+            distance_to_tag = np.linalg.norm(pos - fixed_pos)
 
             if distance_to_tag <= 678.0:   # PAST TRUST
-                poses.append(pose)
+                pose_key = tuple(camera_global.flatten())
+                pose_distance_list.append({
+                    'pose_key': pose_key,
+                    'distance': distance_to_tag,
+                    'tag_id': tag.tag_id
+                })
 
-        if not poses:
-            return None, frame
+        if not pose_distance_list:
+            # No valid poses found
+            return None, frame, None
+            
+        # Find the pose info with smallest distance
+        best_pose_info = min(pose_distance_list, key=lambda x: x['distance'])
+
+        best_pose = np.array(best_pose_info['pose_key']).reshape(4, 4)
+        best_tag_id = best_pose_info['tag_id']
+        # best_dist = best_pose_info['distance']
         
         
-        return poses[0], frame
+        return best_pose, frame, best_tag_id
     
 
 
