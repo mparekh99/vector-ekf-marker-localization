@@ -15,15 +15,17 @@ class KalmanFilter:
         ])
 
 
-        # self.R = np.diag([
-        #     5.0,               # position X noise (mm^2)
-        #     5.0,               # position Y noise
-        #     np.deg2rad(5.0)**2  # orientation noise increased to ~5 degrees
-        # ])
+        # self.Q = np.diag([2.0, 2.0, np.deg2rad(10.0)**2])   # process noise
+        # self.R = np.diag([2.0, 2.0, np.deg2rad(10.0)**2])        # measurement noise
 
-        self.Q = np.diag([
-            0.5, 0.5, np.deg2rad(5.0)**2  # slightly more process noise on orientation
-        ])
+        self.Q = np.diag([0.5, 0.5, np.deg2rad(0.5)**2])   # Trust odometry more
+        self.R = np.diag([4.0, 4.0, np.deg2rad(10.0)**2])  # Camera is jumpy
+
+
+
+        # self.Q = np.diag([
+        #     2.0, 2.0, np.deg2rad(10.0)**2  # slightly more process noise on orientation
+        # ])
 
         self.H = np.eye(3)
 
@@ -37,7 +39,7 @@ class KalmanFilter:
         # ODOMETRY PREDICTOIN -- using the Motion Model Taken From: https://www.youtube.com/watch?v=LrsTBWf6Wsc
         
         theta_k = self.theta_last + theta * timestep
-        # theta_k = wrap_angle_pi(theta_k)
+        theta_k = wrap_angle_pi(theta_k)
 
         x_k = self.x_last + velocity * math.cos(theta_k) * timestep
         y_k = self.y_last + velocity * math.sin(theta_k) * timestep
@@ -63,7 +65,8 @@ class KalmanFilter:
 
     def update(self, x, y, theta):
         
-        R = np.diag([5.0, 5.0, np.deg2rad(5.0)**2])
+        # R = np.diag([2.0, 2.0, np.deg2rad(10.0)**2])
+        
 
         x_est = np.array([self.x_last, self.y_last, self.theta_last])
         z_k = np.array([x , y, theta]) # camera measurement
@@ -72,11 +75,22 @@ class KalmanFilter:
         y_k[2] = wrap_angle_pi(y_k[2])
 
         # KALMAN GAIN
-        S = self.H @ self.P_last @ self.H.T + R
+        S = self.H @ self.P_last @ self.H.T + self.R
         K = self.P_last @ self.H.T @ np.linalg.inv(S)
         # print("Kalman Gain K:\n", K)
 
- 
+        # CHATGPT Mahalanobis distance
+        S_inv = np.linalg.inv(S)
+        mahalanobis_dist = y_k.T @ S_inv @ y_k
+
+        # Threshold can be tuned; for 3D, 95% confidence ~7.81 (chi-square)
+        if mahalanobis_dist > 50:
+            # Reject measurement as outlier, skip update
+            print(f"Measurement rejected: Mahalanobis dist = {mahalanobis_dist:.2f}")
+            return self.x_last, self.y_last, self.theta_last
+        else: 
+            print("USING READING")
+
         # Update state
         x_updated = x_est + K @ y_k
 
