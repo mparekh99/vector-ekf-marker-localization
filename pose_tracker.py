@@ -34,19 +34,20 @@ class PoseTracker:
 
     def update_pose(self, raw_image, robot):
         # print("HELLo")
-        frame = self.marker_processor.preprocess_frame(raw_image)
-        pose, _, tag = self.marker_processor.process_frame(frame)
-        # print("EHEEEE")
-
         current_time = time.time()
         dt = current_time - self.last_update_time  # in seconds
         self.last_update_time = current_time
+
+
+        frame = self.marker_processor.preprocess_frame(raw_image)
+        pose, _, tag, vo_yaw = self.marker_processor.process_frame(frame, current_time)
+        # print("EHEEEE")
 
         v_l = robot.left_wheel_speed_mmps
         v_r = robot.right_wheel_speed_mmps
 
         v = (v_l + v_r) / 2
-        angular_velocity = (v_r - v_l) / WHEEL_BASE
+        # angular_velocity = (v_r - v_l) / WHEEL_BASE
 
         x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, robot.gyro.z)
         # x_pred, y_pred, theta_pred = self.kalman.initial_predict(v, dt, angular_velocity)
@@ -93,26 +94,11 @@ class PoseTracker:
         self.position[1] = y
         self.heading = theta
 
-        # print("KALMAN")
-        # print(x, y)
-        # if marker_logs is not None: 
-        #     for log in marker_logs:
-
-        #         curr_marker = self.world.marker_transforms.get(log["marker_id"])
-
-        #         curr_m_pos = curr_marker["pos"]
-
-        #         odom_hyp = math.sqrt(((curr_m_pos[0] - self.odom_x)** 2)+ (((curr_m_pos[1] - self.odom_y)** 2)))
-
-        #         self.logs.append({
-        #             "timestamp": current_time,
-        #             "frame": log["frame"],
-        #             "marker_id": log["marker_id"],
-        #             "estimated_distance_mm": log["estimated_distance_mm"],
-        #             "hypot_solvepnp_mm": log["hypot_solvepnp_mm"],
-        #             "odom_hyp": odom_hyp,
-        #             "pixel_size_avg": log["pixel_size_avg"],
-        #         })
+        innovation_x = (x_cam - x_pred) if x_cam is not None else 0
+        innovation_y = (y_cam - y_pred) if y_cam is not None else 0
+        innovation_theta = wrap_angle_pi((theta_cam - theta_pred) if theta_cam is not None else 0)
+        md = self.kalman.mahalanobis_dist
+        measurement_used = (md is not None and md <= 50)
 
 
         self.logs.append({
@@ -122,7 +108,8 @@ class PoseTracker:
             "pred_theta": theta_pred,
             "odom_x": self.odom_x,
             "odom_y": self.odom_y,
-            "odom_theta": self.odom_theta,
+            "odom_theta": wrap_angle_pi(self.odom_theta),
+            "vo_theta": vo_yaw,
             "cam_x": x_cam,
             "cam_y": y_cam,
             "cam_theta": theta_cam,
@@ -130,6 +117,14 @@ class PoseTracker:
             "ekf_y": y,
             "ekf_theta": theta,
             "observed_tag": tag, 
+            "innovation_x": innovation_x,
+            "innovation_y": innovation_y,
+            "innovation_theta": innovation_theta,
+            "mahalanobis_distance": self.kalman.mahalanobis_dist,
+            "measurement_used": measurement_used,
+            "cov_x": self.kalman.P_last[0, 0],
+            "cov_y": self.kalman.P_last[1, 1],
+            "cov_theta": self.kalman.P_last[2, 2],
         })
 
         return frame

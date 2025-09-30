@@ -18,8 +18,10 @@ class KalmanFilter:
         # self.Q = np.diag([2.0, 2.0, np.deg2rad(10.0)**2])   # process noise
         # self.R = np.diag([2.0, 2.0, np.deg2rad(10.0)**2])        # measurement noise
 
-        self.Q = np.diag([0.5, 0.5, np.deg2rad(0.5)**2])   # Trust odometry more
-        self.R = np.diag([4.0, 4.0, np.deg2rad(10.0)**2])  # Camera is jumpy
+        # self.Q = np.diag([0.5, 0.5, np.deg2rad(0.5)**2])   # Trust odometry more
+        self.Q = np.diag([2.0, 2.0, np.deg2rad(10.0)**2])
+
+        self.R = np.diag([5.0, 5.0, np.deg2rad(15.0)**2])  # Camera is jumpy
 
 
 
@@ -33,6 +35,7 @@ class KalmanFilter:
         self.y_last = 0
         self.theta_last = math.pi / 2
 
+        self.mahalanobis_dist = None
 
     def initial_predict(self, velocity, timestep, theta):
         
@@ -81,12 +84,12 @@ class KalmanFilter:
 
         # CHATGPT Mahalanobis distance
         S_inv = np.linalg.inv(S)
-        mahalanobis_dist = y_k.T @ S_inv @ y_k
+        self.mahalanobis_dist = y_k.T @ S_inv @ y_k
 
         # Threshold can be tuned; for 3D, 95% confidence ~7.81 (chi-square)
-        if mahalanobis_dist > 50:
+        if self.mahalanobis_dist > 50:
             # Reject measurement as outlier, skip update
-            print(f"Measurement rejected: Mahalanobis dist = {mahalanobis_dist:.2f}")
+            # print(f"Measurement rejected: Mahalanobis dist = {self.mahalanobis_dist:.2f}")
             return self.x_last, self.y_last, self.theta_last
         else: 
             print("USING READING")

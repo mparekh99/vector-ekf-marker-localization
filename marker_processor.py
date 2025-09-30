@@ -7,6 +7,7 @@ import pickle
 import csv
 import os
 from pupil_apriltags import Detector
+from utils import wrap_angle_pi
 
 # Constants
 MARKER_LENGTH = 50 #MM
@@ -47,6 +48,14 @@ class MarkerProcessor:
         self.frame_number = 0
         self.last_frame_number = None
 
+        # VISUAL ODOM
+        
+        self.prev_landmarks = {}  # {tag_id: (center_x, center_y)}
+        # self.vo_pose = np.eye(4)  # VO pose estimate, starts at origin
+        self.vo_yaw = math.pi / 2
+        self.last_vo_yaw = None
+        self.last_vo_time = None
+        self.angular_velocity_vo = None  # in radians/sec
 
 
     def preprocess_frame(self, frame_pil):
@@ -76,10 +85,7 @@ class MarkerProcessor:
     #     return distance_mm
 
 
-    def process_frame(self, frame):
-        marker_logs = []
-
-        R_diag = None
+    def process_frame(self, frame, time):
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -89,6 +95,7 @@ class MarkerProcessor:
         fy = self.mtx[1, 1]
         cx = self.mtx[0, 2]
         cy = self.mtx[1, 2]
+
 
         # Detect tags and estimate pose
         tags = self.at_detector.detect(
@@ -101,9 +108,23 @@ class MarkerProcessor:
         pose = None
         poses = []
         pose_distance_list = []
+        curr_landmarks = {}
+        yaw_changes = []
 
 
         for tag in tags:
+
+            # print(tag)
+
+            tag_id = tag.tag_id
+            center_x, center_y = tag.center
+            curr_landmarks[tag_id] = (center_x, center_y)
+
+            if tag_id in self.prev_landmarks:
+                prev_x, prev_y = self.prev_landmarks[tag_id]
+                dx = center_x - prev_x
+                yaw_change = dx / fx  # Negative: landmark moves opposite camera rotation
+                yaw_changes.append(yaw_change)
 
             rvec = tag.pose_R
             tvec = tag.pose_t
@@ -142,12 +163,35 @@ class MarkerProcessor:
                 pose_distance_list.append({
                     'pose_key': pose_key,
                     'distance': distance_to_tag,
-                    'tag_id': tag.tag_id
+                    'tag_id': tag_id
                 })
+
+
+
+        if yaw_changes:
+            avg_yaw_change = np.mean(yaw_changes)
+            self.vo_yaw += avg_yaw_change
+            self.vo_yaw = wrap_angle_pi(self.vo_yaw)
+            # print(self.vo_yaw)
+            if self.last_vo_yaw is not None and self.last_vo_time is not None:
+                dt = time - self.last_vo_time
+                if dt > 0:
+                    delta_yaw = wrap_angle_pi(self.vo_yaw - self.last_vo_yaw)
+                    self.angular_velocity_vo = delta_yaw / dt
+
+                else:
+                    self.angular_velocity_vo = None
+
+            self.last_vo_yaw = self.vo_yaw
+            self.last_vo_time = time
+
+            # print("VO Yaw:", self.vo_yaw, "VO Angular Velocity:", self.angular_velocity_vo)
+
+        self.prev_landmarks = curr_landmarks
 
         if not pose_distance_list:
             # No valid poses found
-            return None, frame, None
+            return None, frame, None, self.vo_yaw
             
         # Find the pose info with smallest distance
         best_pose_info = min(pose_distance_list, key=lambda x: x['distance'])
@@ -157,7 +201,7 @@ class MarkerProcessor:
         # best_dist = best_pose_info['distance']
         
         
-        return best_pose, frame, best_tag_id
+        return best_pose, frame, best_tag_id, self.vo_yaw
     
 
 
