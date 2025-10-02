@@ -10,7 +10,9 @@ from pupil_apriltags import Detector
 from utils import wrap_angle_pi
 
 # Constants
-MARKER_LENGTH = 50 #MM
+# MARKER_LENGTH = 50 #MM
+# MARKER_LENGTH = 45 #MM
+MARKER_LENGTH = 44
 
 
 class MarkerProcessor:
@@ -19,17 +21,26 @@ class MarkerProcessor:
         self.marker_transforms = marker_world.marker_transforms  
 
 
-        self.mtx = np.array(
-            [[344.99536199,   0.,         335.18457768],
-            [  0.,         340.95784312, 174.66841336],
-            [  0.,           0.,           1.        ]])
+        # self.mtx = np.array(
+        #     [[344.99536199,   0.,         335.18457768],
+        #     [  0.,         340.95784312, 174.66841336],
+        #     [  0.,           0.,           1.        ]])
         
-        self.dist = np.array([[-0.08150416, -0.10299143,  0.00519719, -0.0057255,   0.04514907]])
+        # self.dist = np.array([[-0.08150416, -0.10299143,  0.00519719, -0.0057255,   0.04514907]])
 
-        self.opt = np.array([
-            [267.95426624,   0.,         325.68665971],
-            [  0.,         262.35441111, 179.63134443],
-            [  0.,           0.,           1.        ]])
+        # self.opt = np.array([
+        #     [267.95426624,   0.,         325.68665971],
+        #     [  0.,         262.35441111, 179.63134443],
+        #     [  0.,           0.,           1.        ]])
+
+        self.mtx = np.array([
+            [365.25, 0.0, 319.43],
+            [0.0, 368.12, 201.91],
+            [0.0, 0.0, 1.0]
+        ])
+
+        self.dist = np.array([[ 0.33015985, -0.67084208,  0.68154579, -0.34481678 ]])
+
 
 
 
@@ -87,14 +98,28 @@ class MarkerProcessor:
 
     def process_frame(self, frame, time):
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        h, w = frame.shape[:2]
 
-        result = self.at_detector.detect(gray)
+        # Undistort maps?
+        new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(
+            self.mtx, self.dist, (w, h), np.eye(3), balance=0.0
+        )
 
-        fx = self.mtx[0, 0]
-        fy = self.mtx[1, 1]
-        cx = self.mtx[0, 2]
-        cy = self.mtx[1, 2]
+        map1, map2 = cv2.fisheye.initUndistortRectifyMap(
+            self.mtx, self.dist, np.eye(3), new_K, (w, h), cv2.CV_16SC2
+        )
+
+        #undistort
+        undistorted = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR)
+
+
+
+        gray = cv2.cvtColor(undistorted, cv2.COLOR_BGR2GRAY)
+
+        fx = new_K[0, 0]
+        fy = new_K[1, 1]
+        cx = new_K[0, 2]
+        cy = new_K[1, 2]
 
 
         # Detect tags and estimate pose
@@ -155,16 +180,18 @@ class MarkerProcessor:
 
             camera_global[:3, 3] = pos
 
+            # print(pos)
+
             # Compute Euclidean distance between current pose position and fixed marker position
             distance_to_tag = np.linalg.norm(pos - fixed_pos)
 
-            if distance_to_tag <= 678.0:   # PAST TRUST
-                pose_key = tuple(camera_global.flatten())
-                pose_distance_list.append({
-                    'pose_key': pose_key,
-                    'distance': distance_to_tag,
-                    'tag_id': tag_id
-                })
+            # if distance_to_tag <= 580.0:   # PAST TRUST
+            pose_key = tuple(camera_global.flatten())
+            pose_distance_list.append({
+                'pose_key': pose_key,
+                'distance': distance_to_tag,
+                'tag_id': tag_id
+            })
 
 
 

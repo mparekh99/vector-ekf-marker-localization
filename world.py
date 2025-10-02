@@ -48,7 +48,7 @@ class Marker_World:
             1144: {   # BOTTOM
                 "pos": np.array([0, -500, 0]),
                 "rot": rotation_matrix_z(180) @ rotation_matrix_x(-90),
-                "translation": np.array([9, 9]),
+                "translation": np.array([0, 0]),
                 "angle": (3 * math.pi) / 2
             },
             1146: {   # BOTTOM LEFT
