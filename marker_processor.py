@@ -226,7 +226,12 @@ class MarkerProcessor:
         best_pose = np.array(best_pose_info['pose_key']).reshape(4, 4)
         best_tag_id = best_pose_info['tag_id']
         # best_dist = best_pose_info['distance']
+
+        best_pos = best_pose[:3, 3]
         
+        if best_pos[0] > 500 or best_pos[0] < -500 or best_pos[1] < -500 or best_pos[1] > 500:
+            # OUt of bounds 
+            return None, frame, None, self.vo_yaw        
         
         return best_pose, frame, best_tag_id, self.vo_yaw
     
